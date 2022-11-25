@@ -5,7 +5,8 @@ tf_prefix: oak
 # Stereo module:
 aligned_depth: false
 stereo_fps: 15
-stereo_resolution: "480p"
+stereo_resolution: "400p"
+rgb_resolution: "1080p"
 # L-R Check
 lr_check: true
 lr_check_threshold: 5
@@ -14,7 +15,6 @@ lr_check_threshold: 5
 rgb_fps: 15
 # USB 2 Mode?
 usb_2_mode: false
-poe_mode: false
 # Suitable for long range. Currently incompatible with extended disparity
 # Improves the precision and is especially useful for long range measurements.
 # It also helps for better estimating surface normals.

@@ -138,18 +138,18 @@ class OakDTest {
         this->readConfig(nh);
         this->createPipeline();
 
-        device_ = std::make_shared<dai::Device>(*this->pipeline_);
+        device_ = std::make_shared<dai::Device>(*this->pipeline_, cfg_.usb_2_mode);
 
         auto calibrationHandler = device_->readCalibration();
 
         auto stereoQueue = device_->getOutputQueue("depth", 30, false);
         auto rgbQueue = device_->getOutputQueue("rgb", 30, false);
         // auto previewQueue = device_->getOutputQueue("rgb", 30, false);
-        dai::rosBridge::ImageConverter rgbConverter(cfg_.tf_prefix + "_rgb_camera_optical_frame", false);
-        dai::rosBridge::ImageConverter depthConverter(cfg_.tf_prefix + "_right_camera_optical_frame", true);
-        auto rgbCameraInfo = rgbConverter.calibrationToCameraInfo(calibrationHandler, dai::CameraBoardSocket::RGB, cfg_.rgb_width, cfg_.rgb_height);
+        static dai::rosBridge::ImageConverter rgbConverter(cfg_.tf_prefix + "_rgb_camera_optical_frame", false);
+        static dai::rosBridge::ImageConverter depthConverter(cfg_.tf_prefix + "_right_camera_optical_frame", true);
+        static auto rgbCameraInfo = rgbConverter.calibrationToCameraInfo(calibrationHandler, dai::CameraBoardSocket::RGB, cfg_.rgb_width, cfg_.rgb_height);
         auto imgQueue = device_->getOutputQueue("rgb", 30, false);
-        dai::rosBridge::BridgePublisher<sensor_msgs::Image, dai::ImgFrame> rgbPublish(
+        static dai::rosBridge::BridgePublisher<sensor_msgs::Image, dai::ImgFrame> rgbPublish(
             imgQueue,
             nh,
             std::string("color/image"),
@@ -159,7 +159,7 @@ class OakDTest {
             "color");
         rgbPublish.addPublisherCallback();
 
-        dai::rosBridge::BridgePublisher<sensor_msgs::Image, dai::ImgFrame> depthPublish(
+        static dai::rosBridge::BridgePublisher<sensor_msgs::Image, dai::ImgFrame> depthPublish(
             stereoQueue,
             nh,
             std::string("stereo/depth"),
