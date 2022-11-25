@@ -134,11 +134,26 @@ struct OakDProWConfig {
 class OakDTest {
    public:
     OakDTest(ros::NodeHandle nh) {
-        std::vector<dai::DeviceInfo> availableDevices = dai::Device::getAllAvailableDevices();
         this->readConfig(nh);
         this->createPipeline();
 
-        device_ = std::make_shared<dai::Device>(*this->pipeline_, cfg_.usb_2_mode);
+        std::vector<dai::DeviceInfo> availableDevices = dai::Device::getAllAvailableDevices();
+        for(auto deviceInfo : availableDevices) {
+        }
+        bool isDeviceFound = false;
+        std::cout << "Listing available devices..." << std::endl;
+        for(auto deviceInfo : availableDevices) {
+            std::cout << "Device Mx ID: " << deviceInfo.getMxId() << std::endl;
+            if(deviceInfo.state == X_LINK_UNBOOTED || deviceInfo.state == X_LINK_BOOTLOADER) {
+                isDeviceFound = true;
+                device_ = std::make_shared<dai::Device>(*pipeline_, deviceInfo, cfg_.usb_2_mode);
+                break;
+            }
+        }
+
+        if(!isDeviceFound) {
+            throw std::runtime_error("Could not find any linked device.");
+        }
 
         auto calibrationHandler = device_->readCalibration();
 
@@ -224,22 +239,19 @@ class OakDTest {
         // XLinkOut
         xoutLeft->setStreamName("left");
         xoutRight->setStreamName("right");
-        if (cfg_.rectify)
-        {
+        if(cfg_.rectify) {
             stereo->rectifiedLeft.link(xoutLeft->input);
             stereo->rectifiedRight.link(xoutRight->input);
-        }
-        else
-        {
+        } else {
             stereo->syncedLeft.link(xoutLeft->input);
             stereo->syncedRight.link(xoutRight->input);
         }
         monoLeft->out.link(stereo->left);
         monoRight->out.link(stereo->right);
-        //if(cfg_.depth) {
-            stereo->depth.link(xoutDepth->input);
+        // if(cfg_.depth) {
+        stereo->depth.link(xoutDepth->input);
         //} else {
-           // stereo->disparity.link(xoutDepth->input);
+        // stereo->disparity.link(xoutDepth->input);
         //}
     }
 
