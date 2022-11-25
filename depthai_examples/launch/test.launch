@@ -1,5 +1,5 @@
 <launch>
-    <node name="test_publisher" pkg="depthai_examples" type="stereo_inertial_node" output="screen" required="true">
+    <node name="test_publisher" pkg="depthai_examples" type="test_node" output="screen" required="true">
         <rosparam file="$(find depthai_examples)/params/test.yaml" command="load" subst_value="true"/>
     </node>
 
