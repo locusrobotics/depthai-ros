@@ -1,0 +1,15 @@
+<launch>
+    <node name="test_publisher" pkg="depthai_examples" type="stereo_inertial_node" output="screen" required="true">
+        <rosparam file="$(find dephtai_examples)/params/test.yaml" command="load" subst_value="true"/>
+    </node>
+
+
+<node  pkg="nodelet" type="nodelet" name="depth_image_to_pointcloud"
+    args="load depth_image_proc/point_cloud_xyz nodelet_manager">
+    <param name="queue_size"          value="10"/>
+    <remap from="camera_info" to="/test_publisher/stereo/camera_info"/>
+    <remap from="image_rect" to="/test_publisher/stereo/image"/>    
+    <remap from="points" to="/test_publisher/stereo/points"/>
+</node>
+
+</launch>

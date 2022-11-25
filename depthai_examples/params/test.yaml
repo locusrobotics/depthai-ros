@@ -1,0 +1,53 @@
+# Resource:
+resource_folder: "$(find depthai_examples)/resources" 
+tf_prefix: oak
+
+# Stereo module:
+aligned_depth: false
+stereo_fps: 15
+stereo_resolution: "480p"
+# L-R Check
+lr_check: true
+lr_check_threshold: 5
+
+
+rgb_fps: 15
+# USB 2 Mode?
+usb_2_mode: false
+poe_mode: false
+# Suitable for long range. Currently incompatible with extended disparity
+# Improves the precision and is especially useful for long range measurements.
+# It also helps for better estimating surface normals.
+subpixel_interpolation: true
+# Disparity range increased from 0-95 to 0-190, combined from full resolution and downscaled images.
+# Suitable for short range objects. Currently incompatible with sub-pixel disparity
+# Extended disparity mode allows detecting closer distance objects for the given baseline.
+# This increases the maximum disparity search from 96 to 191, meaning the range is now: [0..190].
+# So this cuts the minimum perceivable distance in half, given that the minimum distance is now
+# focal_length * base_line_dist / 190 instead of focal_length * base_line_dist / 95     
+extedend_disparity: false
+# Confidence threshold for disparity calculation [0..255]
+confidence: 200
+rectify: true
+# Exposure settings:
+manual_exposure: false
+# Exposure time in microseconds
+exposure_time: 20000
+# Sensitivity as ISO value, usual range 100..1600
+sens_iso: 800
+# RGB
+rgb_scale_num: 2
+rgb_scale_den: 3
+# preview image settings
+preview_width: 416
+preview_height: 416
+# IR Dot projector
+enable_dot_projector: true
+dot_projector_ma: 200.0
+# IR Flood light
+enable_flood_light: false
+flood_light_ma: 200.0
+# IMU
+use_imu: false
+imu_mode: 0
+imu_frequency: 500
