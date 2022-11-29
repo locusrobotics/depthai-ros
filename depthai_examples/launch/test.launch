@@ -58,32 +58,32 @@
     </include>
 
     <node name="test_publisher" pkg="depthai_examples" type="test_node" output="screen" required="true">
-        <arg name="tf_prefix"       value="$(arg  tf_prefix)" />
-        <arg name="resource_folder"      value="$(arg  resource_folder"  />
-        <arg name="usb_2_mode"    value="$(arg  usb_2_mode)"/>
-        <arg name="aligned_depth"    value="$(arg  aligned_depth)"/>
-        <arg name="stereo_fps"       value="$(arg  stereo_fps)"   />
-        <arg name="stereo_resolution"       value="$(arg  stereo_resolution)"   />
-        <arg name="subpixel_interpolation"       value="$(arg  subpixel_interpolation)"   />
-        <arg name="extedend_disparity"        value="$(arg  extedend_disparity)"    />
-        <arg name="confidence"       value="$(arg  confidence)"/>
-        <arg name="rectify"         value="$(arg  rectify)" />
-        <arg name="enable_dot_projector"         value="$(arg  enable_dot_projector)" />
-        <arg name="dot_projector_ma"         value="$(arg  dot_projector_ma)" />
-        <arg name="enable_flood_light"         value="$(arg  enable_flood_light)" />
-        <arg name="flood_light_ma"         value="$(arg  flood_light_ma)" />
-        <arg name="lr_check"         value="$(arg  lr_check)" />
-        <arg name="lr_check_threshold"         value="$(arg  lr_check_threshold)" />
-        <arg name="rgb_resolution"         value="$(arg  rgb_resolution)" />
-        <arg name="rgb_scale_num"         value="$(arg  rgb_scale_num)" />
-        <arg name="rgb_scale_den"         value="$(arg  rgb_scale_den)" />
-        <arg name="rgb_resolution"         value="$(arg  rgb_resolution)" />
-        <arg name="manual_exposure"         value="$(arg  manual_exposure)" />
-        <arg name="exposure_time"         value="$(arg  exposure_time)" />
-        <arg name="sens_iso"         value="$(arg  sens_iso)" />
+        <param name="tf_prefix"       value="$(arg  tf_prefix)" />
+        <param name="resource_folder"      value="$(arg  resource_folder"  />
+        <param name="usb_2_mode"    value="$(arg  usb_2_mode)"/>
+        <param name="aligned_depth"    value="$(arg  aligned_depth)"/>
+        <param name="stereo_fps"       value="$(arg  stereo_fps)"   />
+        <param name="stereo_resolution"       value="$(arg  stereo_resolution)"   />
+        <param name="subpixel_interpolation"       value="$(arg  subpixel_interpolation)"   />
+        <param name="extedend_disparity"        value="$(arg  extedend_disparity)"    />
+        <param name="confidence"       value="$(arg  confidence)"/>
+        <param name="rectify"         value="$(arg  rectify)" />
+        <param name="enable_dot_projector"         value="$(arg  enable_dot_projector)" />
+        <param name="dot_projector_ma"         value="$(arg  dot_projector_ma)" />
+        <param name="enable_flood_light"         value="$(arg  enable_flood_light)" />
+        <param name="flood_light_ma"         value="$(arg  flood_light_ma)" />
+        <param name="lr_check"         value="$(arg  lr_check)" />
+        <param name="lr_check_threshold"         value="$(arg  lr_check_threshold)" />
+        <param name="rgb_resolution"         value="$(arg  rgb_resolution)" />
+        <param name="rgb_scale_num"         value="$(arg  rgb_scale_num)" />
+        <param name="rgb_scale_den"         value="$(arg  rgb_scale_den)" />
+        <param name="rgb_resolution"         value="$(arg  rgb_resolution)" />
+        <param name="manual_exposure"         value="$(arg  manual_exposure)" />
+        <param name="exposure_time"         value="$(arg  exposure_time)" />
+        <param name="sens_iso"         value="$(arg  sens_iso)" />
     </node>
 
-<node if="$(eval arg('aligned_depth') == true)" pkg="nodelet" type="nodelet" name="depth_image_to_rgb_pointcloud"
+    <node if="$(eval arg('aligned_depth') == true)" pkg="nodelet" type="nodelet" name="depth_image_to_rgb_pointcloud"
         args="load depth_image_proc/point_cloud_xyzrgb nodelet_manager">
         <param name="queue_size"          value="10"/>
         <remap from="rgb/camera_info" to="/stereo_inertial_publisher/color/camera_info"/>
@@ -91,22 +91,5 @@
         <remap from="depth_registered/image_rect" to="/test_publisher/color/image"/>    
         <remap from="depth_registered/points" to="/test_publisher/color/points"/>
     </node>
-    
-    
-      <node if="$(eval arg('aligned_depth') == false)" pkg="nodelet" type="nodelet" name="depth_image_to_pointcloud"
-        args="load depth_image_proc/point_cloud_xyz nodelet_manager">
-        <param name="queue_size"          value="10"/>
-        <remap from="camera_info" to="/test_publisher/stereo/camera_info"/>
-        <remap from="image_rect" to="/test_publisher/stereo/image"/>    
-        <remap from="points" to="/test_publisher/stereo/points"/>
-    </node>
-    
-	<node pkg="nodelet" type="nodelet" name="depth_image_to_pointcloud"
-		args="load depth_image_proc/point_cloud_xyz nodelet_manager">
-		<param name="queue_size" value="10" />
-		<remap from="camera_info" to="/test_publisher/stereo/camera_info" />
-		<remap from="image_rect" to="/test_publisher/stereo/image" />
-		<remap from="points" to="/test_publisher/stereo/points" />
-	</node>
 
 </launch>
