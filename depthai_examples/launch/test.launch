@@ -1,15 +1,112 @@
 <launch>
+
+    <arg name="tf_prefix"            default="oak" />
+    <arg name="resource_folder"      default="$(find depthai_examples)/resources" />
+    
+    
+    <!-- Stereo settings -->
+    <arg name="usb_2_mode" default="false"/>
+    <arg name="aligned_depth" default="false"/>
+    <arg name="stereo_fps" default="15"/>
+    <arg name="stereo_resolution" default="400p"/>
+    <arg name="subpixel_interpolation" default="true"/>
+    <arg name="extedend_disparity" default="false"/>
+    <arg name="confidence" default="200"/>
+    <arg name="rectify" default="true"/>
+    <arg name="enable_dot_projector" default="false"/>
+    <arg name="dot_projector_ma" default="200."/>    
+    <arg name="enable_flood_light" default="false"/>
+    <arg name="flood_light_ma" default="200."/>
+    <arg name="lr_check" default="true"/>
+    <arg name="lr_check_threshold" default="5"/>
+    <arg name="rgb_resolution" default="1080p"/> 
+    <arg name="rgb_scale_num" default="2"/> 
+    <arg name="rgb_scale_den" default="3"/> 
+    <arg name="manual_exposure" default="false"/>
+    <arg name="exposure_time" default="20000"/>  <!-- miliseconds -->
+    <arg name="sens_iso" default="800"/> 
+    
+    
+    <arg name="camera_model"         default="OAK-D" /> <!-- 'zed' or 'zedm' -->
+    <arg name="base_frame"           default="oak-d_frame" />
+    <arg name="parent_frame"         default="oak-d-base-frame" />
+
+    <arg name="cam_pos_x"             default="0.0" /> <!-- Position respect to base frame (i.e. "base_link) -->
+    <arg name="cam_pos_y"             default="0.0" /> <!-- Position respect to base frame (i.e. "base_link) -->
+    <arg name="cam_pos_z"             default="0.0" /> <!-- Position respect to base frame (i.e. "base_link) -->
+    <arg name="cam_roll"              default="0.0" /> <!-- Orientation respect to base frame (i.e. "base_link) -->
+    <arg name="cam_pitch"             default="0.0" /> <!-- Orientation respect to base frame (i.e. "base_link) -->
+    <arg name="cam_yaw"               default="0.0" /> <!-- Orientation respect to base frame (i.e. "base_link) -->
+  
+    <!-- args for stereo node -->
+    <!-- <arg name="outputDepth"           default="true" />
+    <arg name="outputRectified"       default="true" /> -->
+    <arg name="camera_param_uri"      default="package://depthai_examples/params/camera" />
+
+ 
+    <include file="$(find depthai_bridge)/launch/urdf.launch">
+        <arg name="base_frame"      value="$(arg  base_frame)"  />
+        <arg name="parent_frame"    value="$(arg  parent_frame)"/>
+        <arg name="camera_model"    value="$(arg  camera_model)"/>
+        <arg name="tf_prefix"       value="$(arg  tf_prefix)" />
+        <arg name="cam_pos_x"       value="$(arg  cam_pos_x)"   />
+        <arg name="cam_pos_y"       value="$(arg  cam_pos_y)"   />
+        <arg name="cam_pos_z"       value="$(arg  cam_pos_z)"   />
+        <arg name="cam_roll"        value="$(arg  cam_roll)"    />
+        <arg name="cam_pitch"       value="$(arg  cam_pitch)"   />
+        <arg name="cam_yaw"         value="$(arg  cam_yaw)"     />
+    </include>
+
     <node name="test_publisher" pkg="depthai_examples" type="test_node" output="screen" required="true">
-        <rosparam file="$(find depthai_examples)/params/test.yaml" command="load" subst_value="true"/>
+        <arg name="tf_prefix"       value="$(arg  tf_prefix)" />
+        <arg name="resource_folder"      value="$(arg  resource_folder"  />
+        <arg name="usb_2_mode"    value="$(arg  usb_2_mode)"/>
+        <arg name="aligned_depth"    value="$(arg  aligned_depth)"/>
+        <arg name="stereo_fps"       value="$(arg  stereo_fps)"   />
+        <arg name="stereo_resolution"       value="$(arg  stereo_resolution)"   />
+        <arg name="subpixel_interpolation"       value="$(arg  subpixel_interpolation)"   />
+        <arg name="extedend_disparity"        value="$(arg  extedend_disparity)"    />
+        <arg name="confidence"       value="$(arg  confidence)"/>
+        <arg name="rectify"         value="$(arg  rectify)" />
+        <arg name="enable_dot_projector"         value="$(arg  enable_dot_projector)" />
+        <arg name="dot_projector_ma"         value="$(arg  dot_projector_ma)" />
+        <arg name="enable_flood_light"         value="$(arg  enable_flood_light)" />
+        <arg name="flood_light_ma"         value="$(arg  flood_light_ma)" />
+        <arg name="lr_check"         value="$(arg  lr_check)" />
+        <arg name="lr_check_threshold"         value="$(arg  lr_check_threshold)" />
+        <arg name="rgb_resolution"         value="$(arg  rgb_resolution)" />
+        <arg name="rgb_scale_num"         value="$(arg  rgb_scale_num)" />
+        <arg name="rgb_scale_den"         value="$(arg  rgb_scale_den)" />
+        <arg name="rgb_resolution"         value="$(arg  rgb_resolution)" />
+        <arg name="manual_exposure"         value="$(arg  manual_exposure)" />
+        <arg name="exposure_time"         value="$(arg  exposure_time)" />
+        <arg name="sens_iso"         value="$(arg  sens_iso)" />
     </node>
 
-
-<node  pkg="nodelet" type="nodelet" name="depth_image_to_pointcloud"
-    args="load depth_image_proc/point_cloud_xyz nodelet_manager">
-    <param name="queue_size"          value="10"/>
-    <remap from="camera_info" to="/test_publisher/stereo/camera_info"/>
-    <remap from="image_rect" to="/test_publisher/stereo/image"/>    
-    <remap from="points" to="/test_publisher/stereo/points"/>
-</node>
+<node if="$(eval arg('aligned_depth') == true)" pkg="nodelet" type="nodelet" name="depth_image_to_rgb_pointcloud"
+        args="load depth_image_proc/point_cloud_xyzrgb nodelet_manager">
+        <param name="queue_size"          value="10"/>
+        <remap from="rgb/camera_info" to="/stereo_inertial_publisher/color/camera_info"/>
+        <remap from="rgb/image_rect_color" to="/test_publisher/color/camera_info"/>
+        <remap from="depth_registered/image_rect" to="/test_publisher/color/image"/>    
+        <remap from="depth_registered/points" to="/test_publisher/color/points"/>
+    </node>
+    
+    
+      <node if="$(eval arg('aligned_depth') == false)" pkg="nodelet" type="nodelet" name="depth_image_to_pointcloud"
+        args="load depth_image_proc/point_cloud_xyz nodelet_manager">
+        <param name="queue_size"          value="10"/>
+        <remap from="camera_info" to="/test_publisher/stereo/camera_info"/>
+        <remap from="image_rect" to="/test_publisher/stereo/image"/>    
+        <remap from="points" to="/test_publisher/stereo/points"/>
+    </node>
+    
+	<node pkg="nodelet" type="nodelet" name="depth_image_to_pointcloud"
+		args="load depth_image_proc/point_cloud_xyz nodelet_manager">
+		<param name="queue_size" value="10" />
+		<remap from="camera_info" to="/test_publisher/stereo/camera_info" />
+		<remap from="image_rect" to="/test_publisher/stereo/image" />
+		<remap from="points" to="/test_publisher/stereo/points" />
+	</node>
 
 </launch>

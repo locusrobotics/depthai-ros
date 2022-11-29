@@ -16,6 +16,8 @@
 
 #include "depthai/depthai.hpp"
 
+std::vector<std::string> usbStrings = {"UNKNOWN", "LOW", "FULL", "HIGH", "SUPER", "SUPER_PLUS"};
+
 struct OakDProWConfig {
     enum EImuMode : int { COPY, LINEAR_INTER_GYRO, LINEAR_INTER_ACCEL, MAX_MODES };
     std::string mx_id{""};
@@ -153,10 +155,15 @@ class OakDTest {
 
         if(!isDeviceFound) {
             throw std::runtime_error("Could not find any linked device.");
+        } else
+        {
+            ROS_WARN_STREAM("Usb speed: " << usbStrings[static_cast<int32_t>(device_->getUsbSpeed())]);
         }
 
         auto calibrationHandler = device_->readCalibration();
 
+        //
+        ROS_INFO("calibration read!");
         auto stereoQueue = device_->getOutputQueue("depth", 30, false);
         auto rgbQueue = device_->getOutputQueue("rgb", 30, false);
         // auto previewQueue = device_->getOutputQueue("rgb", 30, false);
@@ -261,7 +268,6 @@ class OakDTest {
         nh.param("lr_check", cfg_.lr_check, cfg_.lr_check);
         nh.param("lr_check_threshold", cfg_.lr_check_threshold, cfg_.lr_check_threshold);
         nh.param("usb_2_mode", cfg_.usb_2_mode, cfg_.usb_2_mode);
-        nh.param("poe_mode", cfg_.poe_mode, cfg_.poe_mode);
         nh.param("subpixel_interpolation", cfg_.subpixel_interpolation, cfg_.subpixel_interpolation);
         nh.param("extedend_disparity", cfg_.extedend_disparity, cfg_.extedend_disparity);
         nh.param("confidence", cfg_.confidence, cfg_.confidence);
