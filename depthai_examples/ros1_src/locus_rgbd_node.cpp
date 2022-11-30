@@ -161,23 +161,33 @@ class OakDTest {
         }
 
         auto calibrationHandler = device_->readCalibration();
+		ROS_INFO_STREAM("Found device: " << calibrationHandler.getEepromData().boardName);
+        // Get camera info
+		std::shared_ptr<dai::rosBridge::ImageConverter>  rgbConverter = std::make_shared<dai::rosBridge::ImageConverter>(cfg_.tf_prefix + "_rgb_camera_optical_frame", true);
+        auto rgb_info = rgbConverter->calibrationToCameraInfo(calibrationHandler, dai::CameraBoardSocket::RGB, cfg_.rgb_width, cfg_.rgb_height);
+        std::shared_ptr<dai::rosBridge::ImageConverter> converter;
 
-        //
-        ROS_INFO("calibration read!");
+        static dai::ros::ImageMsgs::CameraInfo depth_info;
+        if (cfg_.aligned_depth)
+        {
+        	depth_info = rgb_info;
+        	converter = rgbConverter;
+        }
+        else
+        {
+        	converter = std::make_shared<dai::rosBridge::ImageConverter>(cfg_.tf_prefix  + "_right_camera_optical_frame", true);;
+        	depth_info = converter->calibrationToCameraInfo(calibrationHandler, dai::CameraBoardSocket::RIGHT, cfg_.stereo_width, cfg_.stereo_width);
+        }
         auto stereoQueue = device_->getOutputQueue("depth", 30, false);
-        auto rgbQueue = device_->getOutputQueue("rgb", 30, false);
-        // auto previewQueue = device_->getOutputQueue("rgb", 30, false);
-        static dai::rosBridge::ImageConverter rgbConverter(cfg_.tf_prefix + "_rgb_camera_optical_frame", false);
-        static dai::rosBridge::ImageConverter depthConverter(cfg_.tf_prefix + "_right_camera_optical_frame", true);
-        static auto rgbCameraInfo = rgbConverter.calibrationToCameraInfo(calibrationHandler, dai::CameraBoardSocket::RGB, cfg_.rgb_width, cfg_.rgb_height);
         auto imgQueue = device_->getOutputQueue("rgb", 30, false);
+
         static dai::rosBridge::BridgePublisher<sensor_msgs::Image, dai::ImgFrame> rgbPublish(
             imgQueue,
             nh,
             std::string("color/image"),
-            std::bind(&dai::rosBridge::ImageConverter::toRosMsg, &rgbConverter, std::placeholders::_1, std::placeholders::_2),
+            std::bind(&dai::rosBridge::ImageConverter::toRosMsg, rgbConverter, std::placeholders::_1, std::placeholders::_2),
             30,
-            rgbCameraInfo,
+            rgb_info,
             "color");
         rgbPublish.addPublisherCallback();
 
@@ -186,12 +196,12 @@ class OakDTest {
             nh,
             std::string("stereo/depth"),
             std::bind(&dai::rosBridge::ImageConverter::toRosMsg,
-                      &depthConverter,  // since the converter has the same frame name
+                      converter,  // since the converter has the same frame name
                                         // and image type is also same we can reuse it
                       std::placeholders::_1,
                       std::placeholders::_2),
             30,
-            rgbCameraInfo,
+			depth_info,
             "stereo");
         depthPublish.addPublisherCallback();
     }
@@ -209,6 +219,8 @@ class OakDTest {
         // MonoCamera
         monoLeft->setResolution(cfg_.stereo_resolution);
         monoLeft->setBoardSocket(dai::CameraBoardSocket::LEFT);
+        monoLeft->setFps(cfg_.stereo_fps);
+        monoRight->setFps(cfg_.stereo_fps);
         monoRight->setResolution(cfg_.stereo_resolution);
         monoRight->setBoardSocket(dai::CameraBoardSocket::RIGHT);
         // StereoDepth
@@ -219,6 +231,10 @@ class OakDTest {
         stereo->setLeftRightCheck(cfg_.lr_check);
         stereo->setExtendedDisparity(cfg_.extedend_disparity);
         stereo->setSubpixel(cfg_.subpixel_interpolation);
+
+        stereo->initialConfig.setMedianFilter(dai::MedianFilter::KERNEL_7x7);
+        stereo->setDefaultProfilePreset(dai::node::StereoDepth::PresetMode::HIGH_ACCURACY);
+
         if(cfg_.aligned_depth) {
             stereo->setDepthAlign(dai::CameraBoardSocket::RGB);
         }
@@ -281,6 +297,7 @@ class OakDTest {
         nh.param("preview_height", cfg_.preview_height, cfg_.preview_height);
         nh.param("aligned_depth", cfg_.aligned_depth, cfg_.aligned_depth);
         nh.param("stereo_fps", cfg_.stereo_fps, cfg_.stereo_fps);
+        nh.param("rgb_fps", cfg_.stereo_fps, cfg_.rgb_fps);
         nh.param("enable_dot_projector", cfg_.enable_dot_projector, cfg_.enable_dot_projector);
         nh.param("dot_projector_ma", cfg_.dot_projector_ma, cfg_.dot_projector_ma);
         nh.param("enable_flood_light", cfg_.enable_flood_light, cfg_.enable_flood_light);
@@ -392,6 +409,8 @@ class OakDTest {
     std::shared_ptr<dai::Device> device_;
     std::shared_ptr<dai::Pipeline> pipeline_;
     std::shared_ptr<dai::DataOutputQueue> pipe_out_;
+
+
 };
 
 int main(int argc, char** argv) {

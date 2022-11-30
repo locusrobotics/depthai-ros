@@ -8,6 +8,7 @@
     <arg name="usb_2_mode" default="false"/>
     <arg name="aligned_depth" default="false"/>
     <arg name="stereo_fps" default="15"/>
+    <arg name="rgb_fps" default="15"/>
     <arg name="stereo_resolution" default="400p"/>
     <arg name="subpixel_interpolation" default="true"/>
     <arg name="extedend_disparity" default="false"/>
@@ -63,6 +64,7 @@
         <param name="usb_2_mode"    value="$(arg  usb_2_mode)"/>
         <param name="aligned_depth"    value="$(arg  aligned_depth)"/>
         <param name="stereo_fps"       value="$(arg  stereo_fps)"   />
+        <param name="rgb_fps"       value="$(arg  rgb_fps)"   />    
         <param name="stereo_resolution"       value="$(arg  stereo_resolution)"   />
         <param name="subpixel_interpolation"       value="$(arg  subpixel_interpolation)"   />
         <param name="extedend_disparity"        value="$(arg  extedend_disparity)"    />
@@ -83,6 +85,15 @@
         <param name="sens_iso"         value="$(arg  sens_iso)" />
     </node>
 
+
+    <node pkg="nodelet" type="nodelet" name="nodelet_manager"  args="manager" output="screen"/>
+
+    <node pkg="nodelet" type="nodelet" name="depth_image_convertion_nodelet"
+        args="load depth_image_proc/convert_metric nodelet_manager">
+        <remap from="image_raw" to="/test_publisher/stereo/depth"/>    
+        <remap from="image" to="/test_publisher/stereo/image"/>
+    </node>
+
     <node if="$(eval arg('aligned_depth') == true)" pkg="nodelet" type="nodelet" name="depth_image_to_rgb_pointcloud"
         args="load depth_image_proc/point_cloud_xyzrgb nodelet_manager">
         <param name="queue_size"          value="10"/>
@@ -90,6 +101,14 @@
         <remap from="rgb/image_rect_color" to="/test_publisher/color/camera_info"/>
         <remap from="depth_registered/image_rect" to="/test_publisher/color/image"/>    
         <remap from="depth_registered/points" to="/test_publisher/color/points"/>
+    </node>
+
+<node if="$(eval arg('aligned_depth') == false)" pkg="nodelet" type="nodelet" name="depth_image_to_pointcloud"
+        args="load depth_image_proc/point_cloud_xyz nodelet_manager">
+        <param name="queue_size"          value="10"/>
+        <remap from="camera_info" to="/test_publisher/stereo/camera_info"/>
+        <remap from="image_rect" to="/test_publisher/stereo/image"/>    
+        <remap from="points" to="/test_publisher/stereo/points"/>
     </node>
 
 </launch>
