@@ -50,7 +50,9 @@ dai::Pipeline createPipeline(bool lrcheck, bool extended, bool subpixel, int con
     stereo->initialConfig.setConfidenceThreshold(confidence);
     stereo->setRectifyEdgeFillColor(0);  // black, to better see the cutout
     stereo->initialConfig.setLeftRightCheckThreshold(LRchecktresh);
-
+    stereo->initialConfig.setMedianFilter(dai::MedianFilter::KERNEL_7x7);
+    stereo->setDefaultProfilePreset(dai::node::StereoDepth::PresetMode::HIGH_ACCURACY);
+    stereo->setMedianFilter(dai::MedianFilter::KERNEL_7x7);
     stereo->setLeftRightCheck(lrcheck);
     stereo->setExtendedDisparity(extended);
     stereo->setSubpixel(subpixel);
@@ -69,14 +71,14 @@ dai::Pipeline createPipeline(bool lrcheck, bool extended, bool subpixel, int con
     colorCam->setResolution(dai::ColorCameraProperties::SensorResolution::THE_1080_P);
     colorCam->setInterleaved(true);
 
-    // Link plugins CAM -> XLINK
+    // Link plugins CAM -> XLI/home/locus/locus_dev/src/depthai-ros/depthai_examples/ros1_src/locus_rgbd_node.cppNK
     colorCam->video.link(xlinkOut->input);
 
     return pipeline;
 }
 
 template <typename T>
-static inline void getParamWithWarning(ros::NodeHandle& pnh, const char* key, T val) {
+static inline void getParamWithWarning(ros::NodeHandle& pnh, const char* key, T& val) {
     bool gotParam = pnh.getParam(key, val);
     if(!gotParam) {
         std::stringstream ss;
@@ -116,6 +118,10 @@ int main(int argc, char** argv) {
     std::string stereo_uri = camera_param_uri + "/" + "right.yaml";
     std::string color_uri = camera_param_uri + "/" + "color.yaml";
 
+
+    std::string tf_final = std::string(tfPrefix + "_right_camera_optical_frame");
+
+    ROS_WARN_STREAM("Using: " << tf_final);
     dai::rosBridge::ImageConverter depthConverter(tfPrefix + "_right_camera_optical_frame", true);
     auto rgbCameraInfo = depthConverter.calibrationToCameraInfo(calibrationHandler, dai::CameraBoardSocket::RGB, 1280, 720);
 

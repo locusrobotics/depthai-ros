@@ -2,8 +2,7 @@
 
     <arg name="tf_prefix"            default="oak" />
     <arg name="resource_folder"      default="$(find depthai_examples)/resources" />
-    
-    
+    <arg name="nodelet_manager_name" default="nodelet_manager"/>
     <!-- Stereo settings -->
     <arg name="usb_2_mode" default="false"/>
     <arg name="aligned_depth" default="false"/>
@@ -86,29 +85,26 @@
     </node>
 
 
-    <node pkg="nodelet" type="nodelet" name="nodelet_manager"  args="manager" output="screen"/>
+    <node pkg="nodelet" type="nodelet" name="$(arg  nodelet_manager_name)"  args="manager" output="screen"/>
 
     <node pkg="nodelet" type="nodelet" name="depth_image_convertion_nodelet"
-        args="load depth_image_proc/convert_metric nodelet_manager">
+        args="load depth_image_proc/convert_metric $(arg  nodelet_manager_name)">
         <remap from="image_raw" to="/test_publisher/stereo/depth"/>    
         <remap from="image" to="/test_publisher/stereo/image"/>
     </node>
 
-    <node if="$(eval arg('aligned_depth') == true)" pkg="nodelet" type="nodelet" name="depth_image_to_rgb_pointcloud"
-        args="load depth_image_proc/point_cloud_xyzrgb nodelet_manager">
+     <node pkg="nodelet" type="nodelet" name="image_rect" args="load image_proc/rectify $(arg  nodelet_manager_name)">
         <param name="queue_size"          value="10"/>
-        <remap from="rgb/camera_info" to="/stereo_inertial_publisher/color/camera_info"/>
-        <remap from="rgb/image_rect_color" to="/test_publisher/color/camera_info"/>
-        <remap from="depth_registered/image_rect" to="/test_publisher/color/image"/>    
-        <remap from="depth_registered/points" to="/test_publisher/color/points"/>
+        <remap from="camera_info" to="/test_publisher/color/camera_info"/>
+        <!-- <remap from="image_mono" to="/test_publisher/color/image"/>     -->
+        <remap from="/image_rect" to="/test_publisher/color/image_rect"/>
+        <remap from="/test_publisher/color/image_mono" to="/test_publisher/color/image"/>    
     </node>
-
-<node if="$(eval arg('aligned_depth') == false)" pkg="nodelet" type="nodelet" name="depth_image_to_pointcloud"
-        args="load depth_image_proc/point_cloud_xyz nodelet_manager">
+    
+    <node pkg="nodelet" type="nodelet" name="depth_image_to_pointcloud" args="load depth_image_proc/point_cloud_xyz $(arg  nodelet_manager_name)">
         <param name="queue_size"          value="10"/>
         <remap from="camera_info" to="/test_publisher/stereo/camera_info"/>
         <remap from="image_rect" to="/test_publisher/stereo/image"/>    
         <remap from="points" to="/test_publisher/stereo/points"/>
     </node>
-
 </launch>

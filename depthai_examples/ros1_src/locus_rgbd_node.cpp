@@ -138,6 +138,9 @@ struct OakDProWConfig
   int stereo_height { 0 };
   int rgb_width { 0 };
   int rgb_height { 0 };
+
+
+  bool speckle_filter {false};
 };
 
 class OakDTest
@@ -146,7 +149,6 @@ public:
   OakDTest(ros::NodeHandle nh)
   {
     this->readConfig(nh);
-    this->createPipeline();
     pipeline_ = std::make_shared<dai::Pipeline>(testPipeline());
 
     std::vector<dai::DeviceInfo> availableDevices = dai::Device::getAllAvailableDevices();
@@ -282,96 +284,7 @@ public:
     ros::spin();
   }
 
-  void createPipeline()
-  {
-    pipeline_ = std::make_shared<dai::Pipeline>();
-    // Let us configure first stereo
-    // IMU
-
-    auto monoLeft = pipeline_->create<dai::node::MonoCamera>();
-    auto monoRight = pipeline_->create<dai::node::MonoCamera>();
-    auto stereo = pipeline_->create<dai::node::StereoDepth>();
-    auto xoutDepth = pipeline_->create<dai::node::XLinkOut>();
-    xoutDepth->setStreamName("depth");
-    // MonoCamera
-    monoLeft->setResolution(cfg_.stereo_resolution);
-    monoLeft->setBoardSocket(dai::CameraBoardSocket::LEFT);
-    monoLeft->setFps(cfg_.stereo_fps);
-    monoRight->setFps(cfg_.stereo_fps);
-    monoRight->setResolution(cfg_.stereo_resolution);
-    monoRight->setBoardSocket(dai::CameraBoardSocket::RIGHT);
-    // StereoDepth
-    stereo->initialConfig.setConfidenceThreshold(cfg_.confidence);
-    stereo->setRectifyEdgeFillColor(0);  // black, to better see the cutout
-    stereo->initialConfig.setLeftRightCheckThreshold(cfg_.lr_check_threshold);
-
-    stereo->setLeftRightCheck(cfg_.lr_check);
-    stereo->setExtendedDisparity(cfg_.extedend_disparity);
-    stereo->setSubpixel(cfg_.subpixel_interpolation);
-
-    stereo->initialConfig.setMedianFilter(dai::MedianFilter::KERNEL_7x7);
-    stereo->setDefaultProfilePreset(dai::node::StereoDepth::PresetMode::HIGH_ACCURACY);
-    // auto config = stereo->initialConfig.get();
-    //     config.postProcessing.speckleFilter.enable = false;
-    //     config.postProcessing.speckleFilter.speckleRange = 50;
-    //     config.postProcessing.temporalFilter.enable = true;
-    //     config.postProcessing.spatialFilter.enable = true;
-    //     config.postProcessing.spatialFilter.holeFillingRadius = 2;
-    //     config.postProcessing.spatialFilter.numIterations = 1;
-    //     config.postProcessing.thresholdFilter.minRange = 400;
-    //     config.postProcessing.thresholdFilter.maxRange = 5000;
-    //     config.postProcessing.decimationFilter.decimationFactor = 1;
-    // stereo->initialConfig.set(config);
-
-    if (cfg_.aligned_depth)
-    {
-      stereo->setDepthAlign(dai::CameraBoardSocket::RGB);
-    }
-
-    // Color camers steream setup -------->
-    auto colorCam = pipeline_->create<dai::node::ColorCamera>();
-    auto xlinkOut = pipeline_->create<dai::node::XLinkOut>();
-
-    xlinkOut->setStreamName("rgb");
-    colorCam->setBoardSocket(dai::CameraBoardSocket::RGB);
-    colorCam->setFps(cfg_.rgb_fps);
-
-    colorCam->setResolution(cfg_.rgb_resolution);
-    colorCam->setInterleaved(true);
-    colorCam->video.link(xlinkOut->input);
-
-    if (cfg_.aligned_depth)
-    {
-      colorCam->setIspScale(cfg_.rgb_scale_num, cfg_.rgb_scale_den);
-      // Link plugins CAM -> XLINK
-      colorCam->isp.link(xlinkOut->input);
-    }
-    // Stereo imges // Stereo imges
-    auto xoutLeft = pipeline_->create<dai::node::XLinkOut>();
-    auto xoutRight = pipeline_->create<dai::node::XLinkOut>();
-    // XLinkOut
-    xoutLeft->setStreamName("left");
-    xoutRight->setStreamName("right");
-    if (cfg_.rectify)
-    {
-      stereo->rectifiedLeft.link(xoutLeft->input);
-      stereo->rectifiedRight.link(xoutRight->input);
-    }
-    else
-    {
-      // stereo->syncedLeft.link(xoutLeft->input);
-      // stereo->syncedRight.link(xoutRight->input);
-    }
-    monoLeft->out.link(stereo->left);
-    monoRight->out.link(stereo->right);
-    // if(cfg_.depth) {
-    stereo->depth.link(xoutDepth->input);
-    //} else {
-    // stereo->disparity.link(xoutDepth->input);
-    //}
-  }
-
-  dai::Pipeline testPipeline()
+  dai::Pipeline testPipeline() const
   {
     // Create pipeline
     dai::Pipeline pipeline;
@@ -404,7 +317,7 @@ public:
     // StereoDepth
     stereo->setDefaultProfilePreset(dai::node::StereoDepth::PresetMode::HIGH_DENSITY);
     stereo->setRectifyEdgeFillColor(0);  // black, to better see the cutout
-    stereo->initialConfig.setMedianFilter(dai::MedianFilter::KERNEL_5x5);
+    stereo->initialConfig.setMedianFilter(dai::MedianFilter::KERNEL_7x7);
     auto config = stereo->initialConfig.get();
     config.postProcessing.speckleFilter.enable = false;
     config.postProcessing.speckleFilter.speckleRange = 50;
@@ -425,8 +338,8 @@ public:
     stereo->setSubpixel(cfg_.subpixel_interpolation);
 
     // Color camers steream setup -------->
-    auto colorCam = pipeline_->create<dai::node::ColorCamera>();
-    auto xlinkOut = pipeline_->create<dai::node::XLinkOut>();
+    auto colorCam = pipeline.create<dai::node::ColorCamera>();
+    auto xlinkOut = pipeline.create<dai::node::XLinkOut>();
 
     xlinkOut->setStreamName("rgb");
     colorCam->setBoardSocket(dai::CameraBoardSocket::RGB);
@@ -439,7 +352,6 @@ public:
     // Linking
     monoLeft->out.link(stereo->left);
     monoRight->out.link(stereo->right);
-
     return pipeline;
   }
 
@@ -531,6 +443,18 @@ public:
       cfg_.rgb_resolution = dai::node::ColorCamera::Properties::SensorResolution::THE_13_MP;
       cfg_.rgb_width = 4208;
       cfg_.rgb_height = 3120;
+    }
+    else if (cfg_.rgb_resolution_str == "720p")
+    {
+      cfg_.rgb_resolution = dai::node::ColorCamera::Properties::SensorResolution::THE_720_P;
+      cfg_.rgb_width = 1280;
+      cfg_.rgb_height = 720;
+    }
+    else if (cfg_.rgb_resolution_str == "800p")
+    {
+      cfg_.rgb_resolution = dai::node::ColorCamera::Properties::SensorResolution::THE_800_P;
+      cfg_.rgb_width = 1280;
+      cfg_.rgb_height = 800;
     }
     else
     {
