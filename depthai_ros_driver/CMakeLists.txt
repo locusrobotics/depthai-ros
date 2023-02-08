@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
+
 project(depthai_ros_driver)
 if(NOT CMAKE_C_STANDARD)
   set(CMAKE_C_STANDARD 99)
@@ -29,6 +30,8 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(depthai CONFIG REQUIRED)
+
+
 generate_dynamic_reconfigure_options(
   cfg/parameters.cfg
 )
